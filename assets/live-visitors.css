@@ -1,0 +1,90 @@
+.live-visitors {
+    --lv-bottom: 1rem;
+    --lv-left: 1rem;
+    --lv-bg: rgba(0, 0, 0, 0.05);
+    --lv-bg-blur: 12px;
+    --lv-radius: 100px;
+    --lv-padding: 0.5rem 0.875rem;
+    --lv-gap: 0.375rem;
+    --lv-dot-size: 0.5rem;
+    --lv-font-size: 0.6875rem;
+    --lv-color: rgba(0, 0, 0, 0.5);
+
+    position: fixed;
+    bottom: var(--lv-bottom);
+    left: var(--lv-left);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: var(--lv-padding);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: var(--lv-font-size);
+    line-height: 1;
+    color: var(--lv-color);
+    background: var(--lv-bg);
+    border-radius: var(--lv-radius);
+    backdrop-filter: blur(var(--lv-bg-blur));
+    -webkit-backdrop-filter: blur(var(--lv-bg-blur));
+    opacity: 0;
+    transform: translateY(0.5rem);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+}
+
+.live-visitors--active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.live-visitors__dots {
+    display: flex;
+    align-items: center;
+    gap: var(--lv-gap);
+}
+
+.live-visitors__dot {
+    width: var(--lv-dot-size);
+    height: var(--lv-dot-size);
+    border-radius: 50%;
+    background: hsl(var(--dot-hue, 200) 65% 55%);
+    animation: lv-pulse 3s ease-in-out infinite;
+    cursor: default;
+}
+
+.live-visitors__dot--enter {
+    animation: lv-enter 0.35s ease-out forwards, lv-pulse 3s ease-in-out infinite 0.35s;
+}
+
+.live-visitors__dot--exit {
+    animation: lv-exit 0.25s ease-in forwards;
+}
+
+.live-visitors__count {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+}
+
+@keyframes lv-pulse {
+    0%, 100% { opacity: 0.65; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes lv-enter {
+    from { opacity: 0; transform: scale(0); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes lv-exit {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0); }
+}
+
+@media (prefers-color-scheme: dark) {
+    .live-visitors {
+        --lv-bg: rgba(255, 255, 255, 0.08);
+        --lv-color: rgba(255, 255, 255, 0.5);
+    }
+}

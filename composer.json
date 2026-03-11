@@ -1,0 +1,27 @@
+{
+  "name": "matthiaswyler/kirby-live-visitors",
+  "description": "Display live visitor presence on your Kirby site using Plausible Analytics real-time data",
+  "type": "kirby-plugin",
+  "license": "MIT",
+  "keywords": [
+    "kirby",
+    "kirby-plugin",
+    "plausible",
+    "analytics",
+    "live-visitors",
+    "real-time"
+  ],
+  "authors": [
+    {
+      "name": "Matthias Wyler",
+      "homepage": "https://matthiaswyler.com"
+    }
+  ],
+  "require": {
+    "getkirby/composer-installer": "^1.2",
+    "php": ">=8.1"
+  },
+  "extra": {
+    "installer-name": "kirby-live-visitors"
+  }
+}
