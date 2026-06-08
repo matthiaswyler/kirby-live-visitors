@@ -4,6 +4,7 @@
 $apiKey = $kirby->option('matthiaswyler.live-visitors.apiKey');
 if (!$apiKey) return;
 if ($kirby->user() !== null) return;
+if ($page->intendedTemplate()->name() === 'error') return;
 
 $interval   = $kirby->option('matthiaswyler.live-visitors.interval', 30);
 $pluginRoot = dirname(__DIR__);

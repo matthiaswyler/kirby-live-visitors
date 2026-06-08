@@ -94,6 +94,11 @@ return [
         'method'  => 'POST',
         'auth'    => false,
         'action'  => function () {
+            $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+            if (preg_match('/bot|crawl|spider|slurp|mediapartners|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|headlesschrome|phantomjs|puppeteer|playwright/i', $ua)) {
+                return ['ok' => false];
+            }
+
             $body = json_decode(file_get_contents('php://input'), true);
 
             $token = $body['token'] ?? '';
