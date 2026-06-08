@@ -4,43 +4,40 @@
     var container = document.getElementById('live-visitors');
     if (!container) return;
 
-    var apiUrl      = container.dataset.api;
-    var interval    = (parseInt(container.dataset.interval, 10) || 30) * 1000;
-    var shouldTrack = container.dataset.track === 'true';
-    var dotsEl      = container.querySelector('.live-visitors__dots');
-    var countEl     = container.querySelector('.live-visitors__count');
-    var current     = [];
+    var apiUrl   = container.dataset.api;
+    var interval = (parseInt(container.dataset.interval, 10) || 30) * 1000;
+    var dotsEl  = container.querySelector('.live-visitors__dots');
+    var countEl = container.querySelector('.live-visitors__count');
+    var current = [];
 
-    // --- Heartbeat (presence tracking for non-panel visitors) ---
+    // --- Heartbeat ---
 
-    if (shouldTrack) {
-        var token = sessionStorage.getItem('lv-token');
-        if (!token) {
-            token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-            sessionStorage.setItem('lv-token', token);
-        }
-
-        function heartbeat() {
-            navigator.sendBeacon
-                ? navigator.sendBeacon(
-                      apiUrl + '/heartbeat',
-                      new Blob(
-                          [JSON.stringify({ token: token, page: location.pathname })],
-                          { type: 'application/json' }
-                      )
-                  )
-                : fetch(apiUrl + '/heartbeat', {
-                      method: 'POST',
-                      credentials: 'same-origin',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ token: token, page: location.pathname }),
-                      keepalive: true,
-                  }).catch(function () {});
-        }
-
-        heartbeat();
-        setInterval(heartbeat, 15000);
+    var token = sessionStorage.getItem('lv-token');
+    if (!token) {
+        token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        sessionStorage.setItem('lv-token', token);
     }
+
+    function heartbeat() {
+        navigator.sendBeacon
+            ? navigator.sendBeacon(
+                  apiUrl + '/heartbeat',
+                  new Blob(
+                      [JSON.stringify({ token: token, page: location.pathname })],
+                      { type: 'application/json' }
+                  )
+              )
+            : fetch(apiUrl + '/heartbeat', {
+                  method: 'POST',
+                  credentials: 'same-origin',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ token: token, page: location.pathname }),
+                  keepalive: true,
+              }).catch(function () {});
+    }
+
+    heartbeat();
+    setInterval(heartbeat, 15000);
 
     // --- Display ---
 
