@@ -6,20 +6,26 @@ Shows individual visual elements (dots) for each live visitor, with location-bas
 
 ## Requirements
 
-- Kirby 4+ (tested with Kirby 5)
+- Kirby 5+ (tested with Kirby 5)
 - PHP 8.1+
 - Plausible Analytics account with a **Stats API key**
 
 ## Installation
 
-### Manual
+### Download
 
 Download and copy this folder to `site/plugins/kirby-live-visitors`.
+
+### Git submodule
+
+```bash
+git submodule add https://github.com/matthiaswyler/kirby-live-visitors.git site/plugins/kirby-live-visitors
+```
 
 ### Composer
 
 ```bash
-composer require mwyler/kirby-live-visitors
+composer require matthiaswyler/kirby-live-visitors
 ```
 
 ## Setup
@@ -35,7 +41,7 @@ composer require mwyler/kirby-live-visitors
 Add to your `site/config/config.php`:
 
 ```php
-'mwyler.live-visitors' => [
+'matthiaswyler.live-visitors' => [
     'apiKey' => 'your-plausible-stats-api-key',
 ],
 ```
@@ -43,7 +49,7 @@ Add to your `site/config/config.php`:
 The `siteId` defaults to your site's hostname. Override it if your Plausible domain differs:
 
 ```php
-'mwyler.live-visitors' => [
+'matthiaswyler.live-visitors' => [
     'apiKey' => 'your-plausible-stats-api-key',
     'siteId' => 'example.com',
 ],
@@ -84,7 +90,7 @@ You can configure which Plausible dimensions to query:
 Example with more dimensions:
 
 ```php
-'mwyler.live-visitors' => [
+'matthiaswyler.live-visitors' => [
     'apiKey'     => 'your-key',
     'dimensions' => ['visit:country_name', 'visit:city_name', 'event:page'],
 ],
@@ -93,7 +99,7 @@ Example with more dimensions:
 ### Self-Hosted Plausible
 
 ```php
-'mwyler.live-visitors' => [
+'matthiaswyler.live-visitors' => [
     'apiKey'  => 'your-key',
     'baseUrl' => 'https://analytics.example.com',
 ],

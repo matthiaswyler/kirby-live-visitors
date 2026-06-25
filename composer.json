@@ -5,25 +5,39 @@
   "version": "1.0.0",
   "license": "MIT",
   "keywords": [
+    "getkirby",
     "kirby",
+    "kirby-cms",
     "kirby-plugin",
     "plausible",
     "analytics",
     "live-visitors",
     "real-time"
   ],
-	"homepage": "https://matthiaswyler.com",
-	"authors": [
-		{
-			"name": "Matthias Wyler",
-			"email": "mail@matthiaswyler.com"
-		}
-	],
+  "homepage": "https://github.com/matthiaswyler/kirby-live-visitors#readme",
+  "authors": [
+    {
+      "name": "Matthias Wyler",
+      "email": "mail@matthiaswyler.com",
+      "homepage": "https://matthiaswyler.com"
+    }
+  ],
+  "support": {
+    "docs": "https://github.com/matthiaswyler/kirby-live-visitors/blob/main/README.md",
+    "issues": "https://github.com/matthiaswyler/kirby-live-visitors/issues",
+    "source": "https://github.com/matthiaswyler/kirby-live-visitors"
+  },
   "require": {
     "getkirby/composer-installer": "^1.2",
     "php": ">=8.1"
   },
+  "config": {
+    "allow-plugins": {
+      "getkirby/composer-installer": true
+    }
+  },
   "extra": {
-    "installer-name": "kirby-live-visitors"
+    "installer-name": "kirby-live-visitors",
+    "kirby-cms-path": false
   }
 }
