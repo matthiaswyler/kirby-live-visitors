@@ -2,6 +2,7 @@
 
 use Mwyler\LiveVisitors\PlausibleClient;
 use Mwyler\LiveVisitors\PresenceStore;
+use Mwyler\LiveVisitors\VisitorId;
 
 return [
     [
@@ -94,23 +95,24 @@ return [
         'method'  => 'POST',
         'auth'    => false,
         'action'  => function () {
-            $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+            $kirby = kirby();
+            $ua    = $kirby->visitor()->userAgent() ?? '';
+
             if (preg_match('/bot|crawl|spider|slurp|mediapartners|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|headlesschrome|phantomjs|puppeteer|playwright/i', $ua)) {
                 return ['ok' => false];
             }
 
             $body = json_decode(file_get_contents('php://input'), true);
+            $page = $body['page'] ?? '';
+            $page = is_string($page) ? substr($page, 0, 255) : '';
 
-            $token = $body['token'] ?? '';
-            $page  = $body['page']  ?? '';
+            // Derive a stable, non-reversible presence id from IP + User-Agent.
+            // Raw IP/UA are never stored; the salt rotates daily. This collapses
+            // multiple tabs/reloads from the same visitor into a single presence.
+            $ip    = $kirby->visitor()->ip() ?? '';
+            $token = (new VisitorId($kirby->root('cache')))->token($ip, $ua);
 
-            if (!is_string($token) || strlen($token) < 8 || strlen($token) > 64) {
-                return ['ok' => false];
-            }
-
-            $page  = is_string($page) ? substr($page, 0, 255) : '';
-            $store = new PresenceStore(kirby()->root('cache'));
-
+            $store = new PresenceStore($kirby->root('cache'));
             $store->heartbeat($token, ['page' => $page]);
 
             return ['ok' => true];

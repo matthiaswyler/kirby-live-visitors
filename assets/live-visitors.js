@@ -11,27 +11,23 @@
     var current = [];
 
     // --- Heartbeat ---
-
-    var token = sessionStorage.getItem('lv-token');
-    if (!token) {
-        token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-        sessionStorage.setItem('lv-token', token);
-    }
+    // No client-side identifier is stored. The server derives a stable,
+    // non-reversible presence id from IP + User-Agent (salted, rotated daily),
+    // so all tabs/reloads from the same visitor collapse into one presence.
 
     function heartbeat() {
+        var payload = JSON.stringify({ page: location.pathname });
+
         navigator.sendBeacon
             ? navigator.sendBeacon(
                   apiUrl + '/heartbeat',
-                  new Blob(
-                      [JSON.stringify({ token: token, page: location.pathname })],
-                      { type: 'application/json' }
-                  )
+                  new Blob([payload], { type: 'application/json' })
               )
             : fetch(apiUrl + '/heartbeat', {
                   method: 'POST',
                   credentials: 'same-origin',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ token: token, page: location.pathname }),
+                  body: payload,
                   keepalive: true,
               }).catch(function () {});
     }

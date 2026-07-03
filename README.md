@@ -1,8 +1,8 @@
 # Kirby Live Visitors
 
-Display live visitor presence on your Kirby site using real-time data from [Plausible Analytics](https://plausible.io).
+Display live visitor presence on your Kirby site using real-time data from [Plausible Analytics](https://plausible.io), combined with a lightweight server-side presence layer.
 
-Shows individual visual elements (dots) for each live visitor, with location-based coloring and smooth enter/exit animations. Fully GDPR-compliant — no cookies, no personal data.
+Shows individual visual elements (dots) for each live visitor, with location-based coloring and smooth enter/exit animations. Privacy-first by design — no cookies, no client-side storage, no personal data stored at rest.
 
 ## Requirements
 
@@ -63,6 +63,8 @@ Include the snippet in your template or layout, ideally before `</body>`:
 <?php snippet('live-visitors') ?>
 ```
 
+The snippet renders nothing for logged-in Panel users or on the error page.
+
 ## Configuration Options
 
 | Option | Default | Description |
@@ -70,9 +72,9 @@ Include the snippet in your template or layout, ideally before `</body>`:
 | `apiKey` | `null` | **(Required)** Plausible Stats API key |
 | `siteId` | auto-detected | Plausible site domain. Defaults to the Kirby site hostname |
 | `baseUrl` | `https://plausible.io` | Plausible instance URL. Change for self-hosted |
-| `dateRange` | `realtime` | Plausible date range. `realtime` = last 5 minutes |
 | `interval` | `30` | Frontend polling interval in seconds |
-| `cacheTtl` | `1` | Server-side cache TTL in minutes |
+| `cacheTtl` | `1` | Server-side Plausible cache TTL in minutes |
+| `presenceTtl` | `30` | Seconds a heartbeat keeps a visitor "present" |
 | `dimensions` | `['visit:country_name', 'visit:city_name']` | Plausible dimensions for visitor breakdown |
 
 ### Available Dimensions
@@ -135,56 +137,66 @@ Dark mode is supported automatically via `prefers-color-scheme`. Override for cu
 
 ## How It Works
 
+The plugin combines two sources into a single live count:
+
 ```
-Browser ──poll──> Kirby API route ──proxy──> Plausible /api/v2/query (realtime)
-                       │
-                  Server-side cache (1 min TTL)
-                       │
-                  Returns aggregate visitor counts
-                  by configured dimensions
-                       │
-              Frontend JS expands counts into
-              individual visual elements
+                    ┌── Plausible /api/v2/query (realtime) ──┐
+Browser ──poll──> Kirby API route                            │
+   │                    │  (server-side cache, 1 min TTL)    │
+   │                    └── aggregate counts by dimension ───┘
+   │
+   └──heartbeat──> Kirby presence store (salted IP+UA hash)
+                        │  short-lived JSON, TTL-gated
+                        └── one entry per visitor (not per tab)
+
+           total = max(plausibleRealtime, activePresence)
 ```
 
-1. The plugin registers a Kirby API route at `/api/live-visitors`
-2. This route proxies requests to Plausible's Stats API v2 with `date_range: "realtime"`
-3. Responses are cached server-side (configurable TTL) to stay within Plausible's rate limits
-4. Frontend JavaScript polls the Kirby endpoint and renders one visual element per visitor
-5. Visitors are grouped by dimensions (country, city, etc.) — the aggregate counts are expanded into individual DOM elements
+1. **Plausible realtime** — the route proxies Plausible's Stats API v2 (`date_range: "realtime"`, last 5 min) and caches the aggregate response server-side to respect rate limits.
+2. **Presence** — the frontend sends a small `heartbeat` every 15s. The server derives a presence id and keeps the visitor "present" for `presenceTtl` seconds. This gives immediate, per-visitor dots even before Plausible's realtime figures update.
+3. The reported total is `max()` of the two, so a visitor is never double-counted.
 
-## GDPR Compliance
+### Presence Identity (no client storage)
 
-This plugin is **fully GDPR-compliant** by design:
+The heartbeat carries **no client-side identifier**. Instead, the server derives a stable presence id:
 
-### No Cookies
+```
+id = sha256( daily_random_salt | IP | User-Agent )   (truncated)
+```
 
-The plugin does not set any cookies. No consent banner required.
+- Raw IP addresses and User-Agent strings are **never stored** — only the truncated hash is written to the presence file.
+- The salt is **random and rotates every day**, so ids are non-reversible and cannot be correlated across days.
+- Because the id is derived from IP + User-Agent, multiple tabs and reloads from the same visitor collapse into a **single** presence entry (this fixes the common "one visitor counted per tab" inflation).
+- Known bots/crawlers are filtered out by User-Agent before any processing.
 
-### No Personal Data
+This is the same salted-hash technique Plausible uses for its own visitor counting.
 
-All data comes from Plausible Analytics, which is privacy-first:
+## Privacy & GDPR
 
-- Plausible does not use cookies or fingerprinting
-- Plausible does not collect or store any personal data or PII
-- No cross-site or cross-device tracking
-- All data is aggregate (visitor counts by dimension), never individual
+This plugin is designed to be deployable **without a consent banner**:
 
-The Kirby API route only passes through aggregate statistics. No IP addresses, user agents, or identifiers are exposed.
+### No Cookies, No Client-Side Storage
+
+The plugin sets no cookies and writes nothing to `localStorage` or `sessionStorage`. Since nothing is stored on or read from the visitor's device for this feature, the ePrivacy Directive's consent requirement for device storage does not apply.
+
+### Personal Data
+
+- **Plausible data** is fully aggregate (e.g. "3 visitors from Zurich") and privacy-first — Plausible uses no cookies, no fingerprinting, and stores no PII.
+- **Presence** briefly processes the visitor's IP and User-Agent server-side only to derive a **non-reversible, daily-rotating hash**. The raw IP and User-Agent are never persisted. Only the truncated hash, the current page path, and a timestamp are stored, in a short-lived JSON file that is purged automatically (default: entries expire after 30s of inactivity and are pruned within 120s).
+
+Under GDPR, this transient processing to produce a pseudonymised, non-reversible identifier — with no cross-day correlation and no cookies — rests on **legitimate interest** (showing live presence), consistent with the widely accepted legal basis for privacy-first analytics like Plausible.
+
+> Not legal advice. If your jurisdiction or DPA takes a stricter view, you can omit the snippet or reduce `presenceTtl`.
 
 ### Data Flow
 
-- **Plausible → Kirby**: Aggregate counts (e.g., "3 visitors from Zurich")
-- **Kirby → Browser**: Same aggregate counts, transformed for display
-- **No data stored**: Only a short-lived server cache (configurable, default 1 minute)
-
-### Legal Basis
-
-No legal basis needed under GDPR — the plugin processes no personal data. Plausible Analytics itself operates under legitimate interest without requiring consent (confirmed by multiple EU DPAs).
+- **Plausible → Kirby**: aggregate counts by dimension
+- **Browser → Kirby**: a heartbeat containing only the current page path (no identifier)
+- **Stored at rest**: a short-lived server cache (Plausible response) and a TTL-gated presence file (salted hash + page + timestamp)
 
 ### Self-Hosted Plausible
 
-If using self-hosted Plausible, the same privacy guarantees apply. Data never leaves your infrastructure.
+If using self-hosted Plausible, the same guarantees apply and data never leaves your infrastructure.
 
 ## Rate Limits
 

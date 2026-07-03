@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/src/PlausibleClient.php';
 require_once __DIR__ . '/src/PresenceStore.php';
+require_once __DIR__ . '/src/VisitorId.php';
 
 Kirby::plugin('matthiaswyler/live-visitors', [
     'options' => [
