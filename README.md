@@ -75,6 +75,7 @@ The snippet renders nothing for logged-in Panel users or on the error page.
 | `interval` | `30` | Frontend polling interval in seconds |
 | `cacheTtl` | `1` | Server-side Plausible cache TTL in minutes |
 | `presenceTtl` | `30` | Seconds a heartbeat keeps a visitor "present" |
+| `activeTimeout` | `60` | Seconds after the last interaction a visible tab still counts as active |
 | `dimensions` | `['visit:country_name', 'visit:city_name']` | Plausible dimensions for visitor breakdown |
 
 ### Available Dimensions
@@ -153,7 +154,7 @@ Browser ──poll──> Kirby API route                            │
 ```
 
 1. **Plausible realtime** — the route proxies Plausible's Stats API v2 (`date_range: "realtime"`, last 5 min) and caches the aggregate response server-side to respect rate limits.
-2. **Presence** — the frontend sends a small `heartbeat` every 15s. The server derives a presence id and keeps the visitor "present" for `presenceTtl` seconds. This gives immediate, per-visitor dots even before Plausible's realtime figures update.
+2. **Presence** — the frontend sends a small `heartbeat` every 15s. The heartbeat fires only while the tab is **visible** and the visitor has interacted within `activeTimeout` seconds, so idle/background/kiosk tabs are not counted. The server derives a presence id and keeps the visitor "present" for `presenceTtl` seconds. This gives immediate, per-visitor dots even before Plausible's realtime figures update.
 3. The reported total is `max()` of the two, so a visitor is never double-counted.
 
 ### Presence Identity (no client storage)

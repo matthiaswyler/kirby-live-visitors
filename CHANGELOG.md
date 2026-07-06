@@ -3,6 +3,20 @@
 All notable changes to this project are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0]
+
+### Changed
+
+- **Only *active* visitors are counted.** The heartbeat now fires only while the
+  tab is visible and the visitor has interacted within `activeTimeout` seconds
+  (default 60). Idle, backgrounded, and kiosk/pinned tabs stop counting, so the
+  live count reflects engaged visitors rather than any open tab.
+
+### Added
+
+- `activeTimeout` option (seconds, default `60`) to tune how long after the last
+  interaction a tab is still considered active.
+
 ## [1.1.0]
 
 ### Changed

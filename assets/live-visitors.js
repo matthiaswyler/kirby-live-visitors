@@ -4,18 +4,41 @@
     var container = document.getElementById('live-visitors');
     if (!container) return;
 
-    var apiUrl   = container.dataset.api;
-    var interval = (parseInt(container.dataset.interval, 10) || 30) * 1000;
+    var apiUrl        = container.dataset.api;
+    var interval      = (parseInt(container.dataset.interval, 10) || 30) * 1000;
+    var activeTimeout = (parseInt(container.dataset.activeTimeout, 10) || 60) * 1000;
     var dotsEl  = container.querySelector('.live-visitors__dots');
     var countEl = container.querySelector('.live-visitors__count');
     var current = [];
 
     // --- Heartbeat ---
-    // No client-side identifier is stored. The server derives a stable,
-    // non-reversible presence id from IP + User-Agent (salted, rotated daily),
-    // so all tabs/reloads from the same visitor collapse into one presence.
+    // Counts *active* visitors only. A heartbeat is sent solely when the tab is
+    // visible and the visitor has interacted within `activeTimeout`. This keeps
+    // idle/background/kiosk tabs from inflating the count. No client-side
+    // identifier is stored — the server derives a non-reversible presence id
+    // from IP + User-Agent (salted, rotated daily).
+
+    var lastActive = Date.now();
+
+    function markActive() {
+        lastActive = Date.now();
+    }
+
+    ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart', 'wheel'].forEach(function (evt) {
+        addEventListener(evt, markActive, { passive: true });
+    });
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') markActive();
+    });
+
+    function isActive() {
+        return document.visibilityState === 'visible' && (Date.now() - lastActive) <= activeTimeout;
+    }
 
     function heartbeat() {
+        if (!isActive()) return;
+
         var payload = JSON.stringify({ page: location.pathname });
 
         navigator.sendBeacon

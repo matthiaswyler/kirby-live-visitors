@@ -2,7 +2,7 @@
   "name": "matthiaswyler/kirby-live-visitors",
   "description": "Display live visitor presence on your Kirby site using Plausible Analytics real-time data",
   "type": "kirby-plugin",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "license": "MIT",
   "keywords": [
     "getkirby",

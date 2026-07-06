@@ -6,8 +6,9 @@ if (!$apiKey) return;
 if ($kirby->user() !== null) return;
 if ($page->intendedTemplate()->name() === 'error') return;
 
-$interval   = $kirby->option('matthiaswyler.live-visitors.interval', 30);
-$pluginRoot = dirname(__DIR__);
+$interval      = $kirby->option('matthiaswyler.live-visitors.interval', 30);
+$activeTimeout = $kirby->option('matthiaswyler.live-visitors.activeTimeout', 60);
+$pluginRoot    = dirname(__DIR__);
 ?>
 <style><?= file_get_contents($pluginRoot . '/assets/live-visitors.css') ?></style>
 <div
@@ -15,6 +16,7 @@ $pluginRoot = dirname(__DIR__);
     class="live-visitors"
     data-api="<?= $kirby->url('api') ?>/live-visitors"
     data-interval="<?= esc($interval, 'attr') ?>"
+    data-active-timeout="<?= esc($activeTimeout, 'attr') ?>"
     aria-live="polite"
     aria-label="Live visitors"
 >
