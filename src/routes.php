@@ -102,18 +102,34 @@ return [
                 return ['ok' => false];
             }
 
+            // Only accept heartbeats from this site's own pages. Browsers send
+            // Sec-Fetch-Site and (on POST) Origin, so other websites can't make
+            // their visitors' browsers report presence here.
+            $request = $kirby->request();
+            $origin  = $request->header('Origin');
+
+            if (
+                $request->header('Sec-Fetch-Site') === 'cross-site' ||
+                ($origin !== null && parse_url($origin, PHP_URL_HOST) !== parse_url($kirby->url(), PHP_URL_HOST))
+            ) {
+                return ['ok' => false];
+            }
+
             // Derive a stable, non-reversible presence id from IP + User-Agent.
             // Raw IP/UA are never stored; the salt rotates daily. This collapses
             // multiple tabs/reloads from the same visitor into a single presence.
             // The request body is ignored (pre-1.3.0 widgets still send a page).
-            $ip    = $kirby->visitor()->ip() ?? '';
-            $token = (new VisitorId($kirby->root('cache')))->token($ip, $ua);
+            $ip        = $kirby->visitor()->ip() ?? '';
+            $visitorId = new VisitorId($kirby->root('cache'));
 
-            $presenceTtl = (int) $kirby->option('matthiaswyler.live-visitors.presenceTtl', 30);
-            $store       = new PresenceStore($kirby->root('cache'), $presenceTtl);
-            $store->heartbeat($token);
+            $store = new PresenceStore(
+                $kirby->root('cache'),
+                ttl:         (int) $kirby->option('matthiaswyler.live-visitors.presenceTtl', 30),
+                maxVisitors: (int) $kirby->option('matthiaswyler.live-visitors.maxVisitors', 100),
+                maxPerIp:    (int) $kirby->option('matthiaswyler.live-visitors.maxPerIp', 3),
+            );
 
-            return ['ok' => true];
+            return ['ok' => $store->heartbeat($visitorId->token($ip, $ua), $visitorId->ipHash($ip))];
         },
     ],
 ];

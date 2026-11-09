@@ -14,6 +14,7 @@ namespace Mwyler\LiveVisitors;
 class VisitorId
 {
     private string $filepath;
+    private ?string $salt = null;
 
     public function __construct(string $cacheDir)
     {
@@ -25,7 +26,21 @@ class VisitorId
         return substr(hash('sha256', $this->dailySalt() . '|' . $ip . '|' . $userAgent), 0, 32);
     }
 
+    /**
+     * Salted hash of the IP alone, used to cap presence entries per IP.
+     * The token can't serve this purpose because it also mixes in the UA.
+     */
+    public function ipHash(string $ip): string
+    {
+        return substr(hash('sha256', $this->dailySalt() . '|ip|' . $ip), 0, 16);
+    }
+
     private function dailySalt(): string
+    {
+        return $this->salt ??= $this->loadSalt();
+    }
+
+    private function loadSalt(): string
     {
         $today = gmdate('Y-m-d');
 

@@ -76,6 +76,8 @@ The snippet renders nothing for logged-in Panel users or on the error page.
 | `cacheTtl` | `1` | Server-side Plausible cache TTL in minutes |
 | `presenceTtl` | `30` | Seconds a heartbeat keeps a visitor "present". Heartbeats are sent every `presenceTtl / 2` seconds (minimum 5), so keep it at 10 or more |
 | `activeTimeout` | `60` | Seconds after the last interaction a visible tab still counts as active |
+| `maxVisitors` | `100` | Max visitors in the presence store. New visitors beyond it are not added. `0` disables the limit |
+| `maxPerIp` | `3` | Max visitors per IP address in the presence store. `0` disables the limit |
 | `dimensions` | `['visit:country_name', 'visit:city_name']` | Plausible dimensions for visitor breakdown |
 
 ### Available Dimensions
@@ -171,6 +173,17 @@ id = sha256( daily_random_salt | IP | User-Agent )   (truncated)
 - Because the id is derived from IP + User-Agent, multiple tabs and reloads from the same visitor collapse into a **single** presence entry (this fixes the common "one visitor counted per tab" inflation).
 - Known bots/crawlers are filtered out by User-Agent before any processing.
 
+### Abuse Protection
+
+The heartbeat endpoint is public, so the presence store protects itself:
+
+- **Same-site only.** Heartbeats with `Sec-Fetch-Site: cross-site` or an `Origin` from another host are rejected, so other websites can't make their visitors' browsers report presence on your site.
+- **Per-IP limit** (`maxPerIp`, default 3). Rotating the User-Agent no longer creates unlimited dots. To count entries per IP, each entry also keeps a salted hash of the IP alone, using the same daily salt.
+- **Global limit** (`maxVisitors`, default 100). Bounds the store even when requests come from many IPs.
+- Visitors who are already present always stay present, and rejected heartbeats don't rewrite the file.
+
+The limits only affect the presence dots: Plausible still counts everyone, and the total is `max()` of both. If many of your visitors share one IP address (an office or school network), raise `maxPerIp`.
+
 This is the same salted-hash technique Plausible uses for its own visitor counting.
 
 ## Privacy & GDPR
@@ -184,7 +197,7 @@ The plugin sets no cookies and writes nothing to `localStorage` or `sessionStora
 ### Personal Data
 
 - **Plausible data** is fully aggregate (e.g. "3 visitors from Zurich") and privacy-first — Plausible uses no cookies, no fingerprinting, and stores no PII.
-- **Presence** briefly processes the visitor's IP and User-Agent server-side only to derive a **non-reversible, daily-rotating hash**. The raw IP and User-Agent are never persisted. Only the truncated hash, a random per-visit id and a timestamp are stored, in a short-lived JSON file. Pages are neither sent nor stored. Entries expire after `presenceTtl` seconds of inactivity (30s by default) and are removed from the file on the next heartbeat.
+- **Presence** briefly processes the visitor's IP and User-Agent server-side only to derive a **non-reversible, daily-rotating hash**. The raw IP and User-Agent are never persisted. Only the truncated hash, a salted hash of the IP (for the per-IP limit), a random per-visit id and a timestamp are stored, in a short-lived JSON file. Pages are neither sent nor stored. Entries expire after `presenceTtl` seconds of inactivity (30s by default) and are removed from the file on the next heartbeat.
 
 Under GDPR, this transient processing to produce a pseudonymised, non-reversible identifier — with no cross-day correlation and no cookies — rests on **legitimate interest** (showing live presence), consistent with the widely accepted legal basis for privacy-first analytics like Plausible.
 
@@ -195,7 +208,7 @@ Under GDPR, this transient processing to produce a pseudonymised, non-reversible
 - **Plausible → Kirby**: aggregate counts by dimension
 - **Browser → Kirby**: an empty heartbeat (no identifier, no page)
 - **Kirby → Browser**: the live count, aggregate Plausible breakdowns, and one random id per present visitor
-- **Stored at rest**: a short-lived server cache (Plausible response) and a TTL-gated presence file (salted hash + random per-visit id + timestamp)
+- **Stored at rest**: a short-lived server cache (Plausible response) and a TTL-gated presence file (salted hashes + random per-visit id + timestamp)
 
 ### Self-Hosted Plausible
 

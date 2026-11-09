@@ -14,6 +14,8 @@ Kirby::plugin('matthiaswyler/live-visitors', [
         'cacheTtl'      => 1,
         'presenceTtl'   => 30,
         'activeTimeout' => 60,
+        'maxVisitors'   => 100,
+        'maxPerIp'      => 3,
         'dimensions'    => ['visit:country_name', 'visit:city_name'],
     ],
     'api' => [
