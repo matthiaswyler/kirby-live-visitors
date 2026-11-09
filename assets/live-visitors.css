@@ -49,12 +49,16 @@
     height: var(--lv-dot-size);
     border-radius: 50%;
     background: hsl(var(--dot-hue, 200) 65% 55%);
-    animation: lv-pulse 3s ease-in-out infinite;
+    animation: lv-pulse 3s ease-in-out var(--dot-delay, 0s) infinite;
     cursor: default;
 }
 
+/* The random --dot-delay only offsets the pulse, so the enter animation
+   always plays first and dots don't pulse in sync. */
 .live-visitors__dot--enter {
-    animation: lv-enter 0.35s ease-out forwards, lv-pulse 3s ease-in-out infinite 0.35s;
+    animation:
+        lv-enter 0.35s ease-out both,
+        lv-pulse 3s ease-in-out calc(0.35s + var(--dot-delay, 0s)) infinite;
 }
 
 .live-visitors__dot--exit {
@@ -72,9 +76,10 @@
     50% { opacity: 1; transform: scale(1.2); }
 }
 
+/* Ends on the pulse's resting opacity, so there's no jump when it starts. */
 @keyframes lv-enter {
     from { opacity: 0; transform: scale(0); }
-    to { opacity: 1; transform: scale(1); }
+    to { opacity: 0.65; transform: scale(1); }
 }
 
 @keyframes lv-exit {
