@@ -3,6 +3,26 @@
 All notable changes to this project are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0]
+
+### Added
+
+- **Abuse limits for the public heartbeat endpoint.**
+  - Heartbeats sent from other websites are rejected (`Sec-Fetch-Site:
+    cross-site`, or an `Origin` from another host).
+  - `maxPerIp` option (default `3`): rotating the User-Agent can no longer
+    create unlimited dots from one IP.
+  - `maxVisitors` option (default `100`): caps the presence store in total.
+  - Visitors already present always refresh. Rejected heartbeats return
+    `{"ok": false}` and don't rewrite the presence file.
+
+### Changed
+
+- Presence entries also store a salted hash of the IP alone (same daily salt),
+  which the per-IP limit needs. Raw IPs are still never stored.
+- `PresenceStore` takes the limits in its constructor, and `heartbeat()`
+  takes the IP hash and returns whether the heartbeat was accepted.
+
 ## [1.3.0]
 
 ### Changed
