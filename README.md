@@ -159,13 +159,14 @@ Browser ──poll──> Kirby API route                            │
 
 ### Presence Identity (no client storage)
 
-The heartbeat carries **no client-side identifier**. Instead, the server derives a stable presence id:
+The heartbeat carries **no data at all**: no client-side identifier and no page. Instead, the server derives a stable presence id:
 
 ```
 id = sha256( daily_random_salt | IP | User-Agent )   (truncated)
 ```
 
 - Raw IP addresses and User-Agent strings are **never stored** — only the truncated hash is written to the presence file.
+- The hash never leaves the server. The public API only returns a **random id per visit**, which is replaced when a visitor comes back after their presence expired. It reveals neither which page a visitor is on nor anything that links their separate visits.
 - The salt is **random and rotates every day**, so ids are non-reversible and cannot be correlated across days.
 - Because the id is derived from IP + User-Agent, multiple tabs and reloads from the same visitor collapse into a **single** presence entry (this fixes the common "one visitor counted per tab" inflation).
 - Known bots/crawlers are filtered out by User-Agent before any processing.
@@ -183,7 +184,7 @@ The plugin sets no cookies and writes nothing to `localStorage` or `sessionStora
 ### Personal Data
 
 - **Plausible data** is fully aggregate (e.g. "3 visitors from Zurich") and privacy-first — Plausible uses no cookies, no fingerprinting, and stores no PII.
-- **Presence** briefly processes the visitor's IP and User-Agent server-side only to derive a **non-reversible, daily-rotating hash**. The raw IP and User-Agent are never persisted. Only the truncated hash, the current page path, and a timestamp are stored, in a short-lived JSON file. Entries expire after `presenceTtl` seconds of inactivity (30s by default) and are removed from the file on the next heartbeat.
+- **Presence** briefly processes the visitor's IP and User-Agent server-side only to derive a **non-reversible, daily-rotating hash**. The raw IP and User-Agent are never persisted. Only the truncated hash, a random per-visit id and a timestamp are stored, in a short-lived JSON file. Pages are neither sent nor stored. Entries expire after `presenceTtl` seconds of inactivity (30s by default) and are removed from the file on the next heartbeat.
 
 Under GDPR, this transient processing to produce a pseudonymised, non-reversible identifier — with no cross-day correlation and no cookies — rests on **legitimate interest** (showing live presence), consistent with the widely accepted legal basis for privacy-first analytics like Plausible.
 
@@ -192,8 +193,9 @@ Under GDPR, this transient processing to produce a pseudonymised, non-reversible
 ### Data Flow
 
 - **Plausible → Kirby**: aggregate counts by dimension
-- **Browser → Kirby**: a heartbeat containing only the current page path (no identifier)
-- **Stored at rest**: a short-lived server cache (Plausible response) and a TTL-gated presence file (salted hash + page + timestamp)
+- **Browser → Kirby**: an empty heartbeat (no identifier, no page)
+- **Kirby → Browser**: the live count, aggregate Plausible breakdowns, and one random id per present visitor
+- **Stored at rest**: a short-lived server cache (Plausible response) and a TTL-gated presence file (salted hash + random per-visit id + timestamp)
 
 ### Self-Hosted Plausible
 

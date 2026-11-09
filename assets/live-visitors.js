@@ -15,9 +15,10 @@
     // --- Heartbeat ---
     // Counts *active* visitors only. A heartbeat is sent solely when the tab is
     // visible and the visitor has interacted within `activeTimeout`. This keeps
-    // idle/background/kiosk tabs from inflating the count. No client-side
-    // identifier is stored — the server derives a non-reversible presence id
-    // from IP + User-Agent (salted, rotated daily).
+    // idle/background/kiosk tabs from inflating the count. The heartbeat
+    // carries no data, and no client-side identifier is stored. The server
+    // derives a non-reversible presence id from IP + User-Agent (salted,
+    // rotated daily).
 
     var lastActive = Date.now();
 
@@ -40,18 +41,11 @@
     function heartbeat() {
         if (!isActive()) return;
 
-        var payload = JSON.stringify({ page: location.pathname });
-
         navigator.sendBeacon
-            ? navigator.sendBeacon(
-                  apiUrl + '/heartbeat',
-                  new Blob([payload], { type: 'application/json' })
-              )
+            ? navigator.sendBeacon(apiUrl + '/heartbeat')
             : fetch(apiUrl + '/heartbeat', {
                   method: 'POST',
                   credentials: 'same-origin',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: payload,
                   keepalive: true,
               }).catch(function () {});
     }
@@ -77,7 +71,7 @@
         var items = presence.map(function (s) {
             return {
                 id:    s.id,
-                label: s.page || 'Browsing',
+                label: 'Browsing',
                 hue:   hashHue(s.id),
             };
         });
