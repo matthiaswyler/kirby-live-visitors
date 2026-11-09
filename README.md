@@ -74,7 +74,7 @@ The snippet renders nothing for logged-in Panel users or on the error page.
 | `baseUrl` | `https://plausible.io` | Plausible instance URL. Change for self-hosted |
 | `interval` | `30` | Frontend polling interval in seconds |
 | `cacheTtl` | `1` | Server-side Plausible cache TTL in minutes |
-| `presenceTtl` | `30` | Seconds a heartbeat keeps a visitor "present" |
+| `presenceTtl` | `30` | Seconds a heartbeat keeps a visitor "present". Heartbeats are sent every `presenceTtl / 2` seconds (minimum 5), so keep it at 10 or more |
 | `activeTimeout` | `60` | Seconds after the last interaction a visible tab still counts as active |
 | `dimensions` | `['visit:country_name', 'visit:city_name']` | Plausible dimensions for visitor breakdown |
 
@@ -153,8 +153,8 @@ Browser ──poll──> Kirby API route                            │
            total = max(plausibleRealtime, activePresence)
 ```
 
-1. **Plausible realtime** — the route proxies Plausible's Stats API v2 (`date_range: "realtime"`, last 5 min) and caches the aggregate response server-side to respect rate limits.
-2. **Presence** — the frontend sends a small `heartbeat` every 15s. The heartbeat fires only while the tab is **visible** and the visitor has interacted within `activeTimeout` seconds, so idle/background/kiosk tabs are not counted. The server derives a presence id and keeps the visitor "present" for `presenceTtl` seconds. This gives immediate, per-visitor dots even before Plausible's realtime figures update.
+1. **Plausible realtime** — the route proxies Plausible's Stats API v2 (a custom `date_range` covering the last 5 minutes) and caches the aggregate response server-side to respect rate limits. The widget only polls while its tab is visible.
+2. **Presence** — the frontend sends a small `heartbeat` every `presenceTtl / 2` seconds (15s by default). The heartbeat fires only while the tab is **visible** and the visitor has interacted within `activeTimeout` seconds, so idle/background/kiosk tabs are not counted. The server derives a presence id and keeps the visitor "present" for `presenceTtl` seconds. This gives immediate, per-visitor dots even before Plausible's realtime figures update.
 3. The reported total is `max()` of the two, so a visitor is never double-counted.
 
 ### Presence Identity (no client storage)
@@ -183,7 +183,7 @@ The plugin sets no cookies and writes nothing to `localStorage` or `sessionStora
 ### Personal Data
 
 - **Plausible data** is fully aggregate (e.g. "3 visitors from Zurich") and privacy-first — Plausible uses no cookies, no fingerprinting, and stores no PII.
-- **Presence** briefly processes the visitor's IP and User-Agent server-side only to derive a **non-reversible, daily-rotating hash**. The raw IP and User-Agent are never persisted. Only the truncated hash, the current page path, and a timestamp are stored, in a short-lived JSON file that is purged automatically (default: entries expire after 30s of inactivity and are pruned within 120s).
+- **Presence** briefly processes the visitor's IP and User-Agent server-side only to derive a **non-reversible, daily-rotating hash**. The raw IP and User-Agent are never persisted. Only the truncated hash, the current page path, and a timestamp are stored, in a short-lived JSON file. Entries expire after `presenceTtl` seconds of inactivity (30s by default) and are removed from the file on the next heartbeat.
 
 Under GDPR, this transient processing to produce a pseudonymised, non-reversible identifier — with no cross-day correlation and no cookies — rests on **legitimate interest** (showing live presence), consistent with the widely accepted legal basis for privacy-first analytics like Plausible.
 

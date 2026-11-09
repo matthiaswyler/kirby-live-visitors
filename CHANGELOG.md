@@ -3,6 +3,34 @@
 All notable changes to this project are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1]
+
+### Fixed
+
+- **The Plausible response is now actually cached.** The plugin never registered
+  its cache, so Kirby used a no-op cache and every poll from every tab called
+  Plausible directly, quickly exhausting the Stats API rate limit.
+- **Polls no longer see an empty presence list during a heartbeat.** Reads now
+  take a shared lock, so they can't land between the file being truncated and
+  rewritten.
+- **A malformed heartbeat can no longer wipe all presence data.** The `page`
+  value must be a URL path, and the file is only rewritten after the new
+  content was encoded successfully.
+- The dot enter animation plays again. The random delay that offsets the pulse
+  was also delaying the enter and exit animations.
+- Dots for Plausible-only visitors keep their colour when the mix of locations
+  changes.
+- A visitor returning while their dot was still fading out gets a fresh dot.
+- Removed the `curl_close()` call, which is deprecated in PHP 8.5.
+
+### Changed
+
+- Polling pauses while the tab is hidden. Returning to the tab sends a heartbeat
+  and refreshes immediately.
+- The heartbeat interval is derived from `presenceTtl` (`presenceTtl / 2`,
+  minimum 5 seconds; 15s with the default), and expired entries are removed
+  after `presenceTtl` instead of a fixed 120 seconds.
+
 ## [1.2.0]
 
 ### Changed

@@ -16,8 +16,8 @@ return [
                 ?? parse_url($kirby->url(), PHP_URL_HOST);
 
             $presenceTtl = (int) $kirby->option('matthiaswyler.live-visitors.presenceTtl', 30);
-            $store       = new PresenceStore($kirby->root('cache'));
-            $presence    = $store->getActive($presenceTtl);
+            $store       = new PresenceStore($kirby->root('cache'), $presenceTtl);
+            $presence    = $store->getActive();
 
             $presenceList = array_map(function ($s) {
                 return [
@@ -103,8 +103,13 @@ return [
             }
 
             $body = json_decode(file_get_contents('php://input'), true);
-            $page = $body['page'] ?? '';
-            $page = is_string($page) ? substr($page, 0, 255) : '';
+            $page = is_array($body) ? ($body['page'] ?? null) : null;
+
+            // The widget sends location.pathname, which is always a
+            // percent-encoded ASCII path. Anything else didn't come from it.
+            if (!is_string($page) || !preg_match('#^/[\x21-\x7E]{0,254}\z#', $page)) {
+                return ['ok' => false];
+            }
 
             // Derive a stable, non-reversible presence id from IP + User-Agent.
             // Raw IP/UA are never stored; the salt rotates daily. This collapses
@@ -112,7 +117,8 @@ return [
             $ip    = $kirby->visitor()->ip() ?? '';
             $token = (new VisitorId($kirby->root('cache')))->token($ip, $ua);
 
-            $store = new PresenceStore($kirby->root('cache'));
+            $presenceTtl = (int) $kirby->option('matthiaswyler.live-visitors.presenceTtl', 30);
+            $store       = new PresenceStore($kirby->root('cache'), $presenceTtl);
             $store->heartbeat($token, ['page' => $page]);
 
             return ['ok' => true];

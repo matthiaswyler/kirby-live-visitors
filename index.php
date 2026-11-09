@@ -6,6 +6,7 @@ require_once __DIR__ . '/src/VisitorId.php';
 
 Kirby::plugin('matthiaswyler/live-visitors', [
     'options' => [
+        'cache'         => true,
         'apiKey'        => null,
         'siteId'        => null,
         'baseUrl'       => 'https://plausible.io',

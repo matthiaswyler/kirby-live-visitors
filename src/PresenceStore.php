@@ -6,7 +6,7 @@ class PresenceStore
 {
     private string $filepath;
 
-    public function __construct(string $cacheDir)
+    public function __construct(string $cacheDir, private int $ttl = 30)
     {
         $this->filepath = $cacheDir . '/live-visitors-presence.json';
     }
@@ -21,14 +21,16 @@ class PresenceStore
         });
     }
 
-    public function getActive(int $ttl = 30): array
+    public function getActive(): array
     {
-        $cutoff   = time() - $ttl;
-        $sessions = $this->read();
+        return array_values($this->active($this->read()));
+    }
 
-        return array_values(array_filter($sessions, function (array $s) use ($cutoff) {
-            return ($s['last_seen'] ?? 0) >= $cutoff;
-        }));
+    private function active(array $sessions): array
+    {
+        $cutoff = time() - $this->ttl;
+
+        return array_filter($sessions, fn ($s) => ($s['last_seen'] ?? 0) >= $cutoff);
     }
 
     private function withLock(callable $fn): void
@@ -42,19 +44,21 @@ class PresenceStore
         if (!$fh) return;
 
         if (flock($fh, LOCK_EX)) {
-            $content  = stream_get_contents($fh);
-            $sessions = $content ? json_decode($content, true) : [];
-            if (!is_array($sessions)) $sessions = [];
-
-            $cutoff   = time() - 120;
-            $sessions = array_filter($sessions, fn($s) => ($s['last_seen'] ?? 0) >= $cutoff);
+            $sessions = $this->active($this->decode(stream_get_contents($fh)));
 
             $fn($sessions);
 
-            ftruncate($fh, 0);
-            rewind($fh);
-            fwrite($fh, json_encode($sessions, JSON_UNESCAPED_UNICODE));
-            fflush($fh);
+            // Encode before truncating, so a failed encode keeps the old
+            // file instead of wiping every visitor.
+            $json = json_encode($sessions, JSON_UNESCAPED_UNICODE);
+
+            if ($json !== false) {
+                ftruncate($fh, 0);
+                rewind($fh);
+                fwrite($fh, $json);
+                fflush($fh);
+            }
+
             flock($fh, LOCK_UN);
         }
 
@@ -65,8 +69,25 @@ class PresenceStore
     {
         if (!file_exists($this->filepath)) return [];
 
-        $content = file_get_contents($this->filepath);
-        $data    = json_decode($content, true);
+        $fh = fopen($this->filepath, 'r');
+        if (!$fh) return [];
+
+        // A shared lock waits for a running heartbeat to finish rewriting
+        // the file; without it, reads can land between truncate and write.
+        $content = '';
+        if (flock($fh, LOCK_SH)) {
+            $content = stream_get_contents($fh);
+            flock($fh, LOCK_UN);
+        }
+
+        fclose($fh);
+
+        return $this->decode($content);
+    }
+
+    private function decode(string|false $content): array
+    {
+        $data = $content ? json_decode($content, true) : [];
 
         return is_array($data) ? $data : [];
     }
