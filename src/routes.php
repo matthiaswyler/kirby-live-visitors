@@ -19,12 +19,12 @@ return [
             $store       = new PresenceStore($kirby->root('cache'), $presenceTtl);
             $presence    = $store->getActive();
 
-            $presenceList = array_map(function ($s) {
-                return [
-                    'id'   => substr($s['token'], 0, 8),
-                    'page' => $s['page'] ?? '',
-                ];
-            }, $presence);
+            // Only the random per-visit id is public. Entries written before
+            // 1.3.0 have none and expire within presenceTtl.
+            $presenceList = array_values(array_map(
+                fn ($s) => ['id' => $s['id']],
+                array_filter($presence, fn ($s) => isset($s['id']))
+            ));
 
             if (!$apiKey || !$siteId) {
                 return [
@@ -102,24 +102,16 @@ return [
                 return ['ok' => false];
             }
 
-            $body = json_decode(file_get_contents('php://input'), true);
-            $page = is_array($body) ? ($body['page'] ?? null) : null;
-
-            // The widget sends location.pathname, which is always a
-            // percent-encoded ASCII path. Anything else didn't come from it.
-            if (!is_string($page) || !preg_match('#^/[\x21-\x7E]{0,254}\z#', $page)) {
-                return ['ok' => false];
-            }
-
             // Derive a stable, non-reversible presence id from IP + User-Agent.
             // Raw IP/UA are never stored; the salt rotates daily. This collapses
             // multiple tabs/reloads from the same visitor into a single presence.
+            // The request body is ignored (pre-1.3.0 widgets still send a page).
             $ip    = $kirby->visitor()->ip() ?? '';
             $token = (new VisitorId($kirby->root('cache')))->token($ip, $ua);
 
             $presenceTtl = (int) $kirby->option('matthiaswyler.live-visitors.presenceTtl', 30);
             $store       = new PresenceStore($kirby->root('cache'), $presenceTtl);
-            $store->heartbeat($token, ['page' => $page]);
+            $store->heartbeat($token);
 
             return ['ok' => true];
         },

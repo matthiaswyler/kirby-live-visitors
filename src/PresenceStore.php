@@ -11,13 +11,16 @@ class PresenceStore
         $this->filepath = $cacheDir . '/live-visitors-presence.json';
     }
 
-    public function heartbeat(string $token, array $data = []): void
+    public function heartbeat(string $token): void
     {
-        $this->withLock(function (array &$sessions) use ($token, $data) {
-            $sessions[$token] = array_merge($data, [
-                'token'     => $token,
+        $this->withLock(function (array &$sessions) use ($token) {
+            $sessions[$token] = [
+                // Random public id that lives only while the visitor stays
+                // present (expired entries are pruned before this runs), so
+                // separate visits can't be linked through the API.
+                'id'        => $sessions[$token]['id'] ?? bin2hex(random_bytes(4)),
                 'last_seen' => time(),
-            ]);
+            ];
         });
     }
 

@@ -3,6 +3,26 @@
 All notable changes to this project are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0]
+
+### Changed
+
+- **The public API no longer reveals where visitors are.** It used to return
+  each visitor's current page together with an id that stayed the same all
+  day, so anyone polling `GET /api/live-visitors` could follow a visitor
+  through the site. Each `presence` entry now only has a random `id`, which
+  lives only while the visitor stays present. A visitor who returns later gets
+  a new one. Dot tooltips read "Browsing".
+- **Pages are no longer sent or stored.** The heartbeat has an empty body and
+  the presence file keeps only the salted hash, the random id and a timestamp.
+  Request bodies from older widgets (e.g. in cached pages) are ignored.
+
+### Upgrade notes
+
+- `presence` entries in the `GET /api/live-visitors` response no longer have
+  a `page` key. Only relevant if you built your own frontend on this endpoint.
+- `PresenceStore::heartbeat()` now only takes the token.
+
 ## [1.2.1]
 
 ### Fixed
