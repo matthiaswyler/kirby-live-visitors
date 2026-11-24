@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.1]
+
+### Changed
+
+- **Kirby 6 support.** The plugin runs unchanged on Kirby 6. `composer.json`
+  now declares `extra.kirby.compatible: "^5.0 || ^6.0"`, so the Kirby plugin
+  directory lists it for Kirby 5 and 6.
+
 ## [1.4.0]
 
 ### Added

@@ -6,7 +6,7 @@ Shows individual visual elements (dots) for each live visitor, with location-bas
 
 ## Requirements
 
-- Kirby 5+ (tested with Kirby 5)
+- Kirby 5 or 6
 - PHP 8.1+
 - Plausible Analytics account with a **Stats API key**
 
